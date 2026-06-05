@@ -23,13 +23,17 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python3 - <<'EOF'
-          import json, urllib.request, os
-          text = open("speiseplan.txt").read()
+          import json, urllib.request, urllib.error, os
+          text = open("speiseplan.txt").read()[:4096]
           data = json.dumps({"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text}).encode()
           req = urllib.request.Request(
               f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
               data=data,
               headers={"Content-Type": "application/json"}
           )
-          urllib.request.urlopen(req)
+          try:
+              urllib.request.urlopen(req)
+          except urllib.error.HTTPError as e:
+              print(e.read().decode())
+              raise
           EOF
