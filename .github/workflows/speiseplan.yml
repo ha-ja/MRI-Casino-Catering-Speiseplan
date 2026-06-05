@@ -25,7 +25,12 @@ jobs:
           python3 - <<'EOF'
           import json, urllib.request, urllib.error, os
           text = open("speiseplan.txt").read()[:4096]
-          data = json.dumps({"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text}).encode()
+          chat_id_raw = os.environ["TELEGRAM_CHAT_ID"]
+          try:
+              chat_id = int(chat_id_raw)
+          except ValueError:
+              chat_id = chat_id_raw
+          data = json.dumps({"chat_id": chat_id, "text": text}).encode()
           req = urllib.request.Request(
               f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
               data=data,
