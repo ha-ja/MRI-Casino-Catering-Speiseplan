@@ -1,4 +1,4 @@
-name: Speiseplan
+name: Meal Plan
 
 on:
   schedule:
@@ -7,12 +7,29 @@ on:
 
 jobs:
   speiseplan:
-    name: Speiseplan abrufen
+    name: Fetch meal plan
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository auschecken
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Speiseplan ausgeben
-        run: bash bin/speiseplan.sh today || bash bin/speiseplan.sh
+      - name: Fetch meal plan
+        run: (bash bin/speiseplan.sh today || bash bin/speiseplan.sh) | tee speiseplan.txt
+
+      - name: Send to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 - <<'EOF'
+          import json, urllib.request, os
+          text = open("speiseplan.txt").read()
+          data = json.dumps({"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text}).encode()
+          req = urllib.request.Request(
+              f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+              data=data,
+              headers={"Content-Type": "application/json"}
+          )
+          urllib.request.urlopen(req)
+          EOF
