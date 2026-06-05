@@ -25,6 +25,7 @@ trap 'rm -f "$TMP_FILE"' EXIT
 
 curl -fsSL --compressed \
   -A "Mozilla/5.0 (speiseplan-terminal)" \
+  -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
   "$URL" \
   -o "$TMP_FILE"
 
