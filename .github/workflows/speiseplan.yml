@@ -2,7 +2,7 @@ name: Meal Plan
 
 on:
   schedule:
-    - cron: "0 8 * * 1-5"
+    - cron: "30 6 * * 1-5"
       timezone: "Europe/Berlin"
   workflow_dispatch:
 
