@@ -6,17 +6,25 @@ on:
       timezone: "Europe/Berlin"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   speiseplan:
     name: Fetch meal plan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Fetch meal plan
-        run: (bash bin/speiseplan.sh today || bash bin/speiseplan.sh) | tee speiseplan.txt
+        run: |
+          (bash bin/speiseplan.sh today || bash bin/speiseplan.sh) \
+            | tee speiseplan.txt
 
       - name: Send to Telegram
         env:
@@ -24,17 +32,33 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python3 - <<'EOF'
-          import json, urllib.request, urllib.error, os
-          text = open("speiseplan.txt").read()[:4096]
-          data = json.dumps({"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text}).encode()
-          req = urllib.request.Request(
-              f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          with open("speiseplan.txt", encoding="utf-8") as file:
+              text = file.read()[:4096]
+
+          data = json.dumps({
+              "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+              "text": text,
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              url=(
+                  "https://api.telegram.org/bot"
+                  f"{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage"
+              ),
               data=data,
-              headers={"Content-Type": "application/json"}
+              headers={"Content-Type": "application/json"},
+              method="POST",
           )
+
           try:
-              urllib.request.urlopen(req)
-          except urllib.error.HTTPError as e:
-              print(e.read().decode())
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  print(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as error:
+              print(error.read().decode("utf-8"))
               raise
           EOF
